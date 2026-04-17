@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Gerador de Orçamentos — Caixas de Papelão</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['DM Sans', 'system-ui', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      @media print {
+        @page {
+          margin: 1.2cm;
+        }
+        body {
+          background: #fff !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-amber-950 font-sans text-slate-800 antialiased">
+    <!-- Login -->
+    <div
+      id="login-screen"
+      class="flex min-h-screen items-center justify-center px-4 py-12 print:hidden"
+    >
+      <div class="w-full max-w-md rounded-2xl border border-slate-700/60 bg-slate-900/80 p-8 shadow-2xl backdrop-blur">
+        <div class="mb-8 text-center">
+          <div
+            class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-amber-500 text-2xl font-bold text-slate-900"
+          >
+            C
+          </div>
+          <h1 class="text-xl font-semibold text-white">Acesso ao sistema</h1>
+          <p class="mt-2 text-sm text-slate-400">Informe a senha para usar o gerador de orçamentos.</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+          <div>
+            <label for="login-password" class="mb-1 block text-sm font-medium text-slate-300">Senha de acesso</label>
+            <input
+              id="login-password"
+              type="password"
+              autocomplete="current-password"
+              required
+              class="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-white placeholder-slate-500 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/30"
+              placeholder="••••••••"
+            />
+          </div>
+          <p id="login-error" class="hidden text-sm text-red-400"></p>
+          <button
+            type="submit"
+            class="w-full rounded-lg bg-amber-500 py-3 font-semibold text-slate-900 transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+          >
+            Entrar
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- App principal -->
+    <div id="app-screen" class="hidden min-h-screen print:block">
+      <header class="border-b border-slate-700/50 bg-slate-900/50 backdrop-blur print:hidden">
+        <div class="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white">Gerador de Orçamentos</h1>
+            <p class="text-sm text-slate-400">Caixas de papelão — simulação de chapa e preço</p>
+          </div>
+          <span class="inline-flex items-center rounded-full bg-amber-500/15 px-3 py-1 text-xs font-medium text-amber-300 ring-1 ring-amber-500/30">
+            Sessão ativa neste navegador
+          </span>
+        </div>
+      </header>
+
+      <!-- Cabeçalho só impressão -->
+      <div class="hidden print:block">
+        <div class="mx-auto max-w-4xl px-4 pt-6">
+          <div
+            id="print-logo-placeholder"
+            class="mb-6 flex h-28 items-center justify-center rounded-lg border-2 border-dashed border-slate-400 bg-slate-50 text-center text-sm text-slate-500"
+          >
+            Logótipo da empresa
+          </div>
+          <h1 class="text-center text-2xl font-bold text-slate-900">Orçamento — Caixas de papelão</h1>
+          <p class="mt-1 text-center text-sm text-slate-600">Documento gerado para impressão</p>
+        </div>
+      </div>
+
+      <main class="mx-auto max-w-5xl px-4 py-10 print:max-w-none print:py-6">
+        <div class="grid gap-8 lg:grid-cols-5 print:hidden">
+          <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg lg:col-span-2">
+            <h2 class="text-lg font-semibold text-slate-800">Dados da caixa</h2>
+            <p class="mt-1 text-sm text-slate-500">Medidas em milímetros (mm).</p>
+            <form id="simulacao-form" class="mt-6 space-y-4">
+              <div>
+                <label for="campo-comprimento" class="mb-1 block text-sm font-medium text-slate-700">Comprimento</label>
+                <input
+                  id="campo-comprimento"
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  placeholder="Ex: 300"
+                />
+              </div>
+              <div>
+                <label for="campo-largura" class="mb-1 block text-sm font-medium text-slate-700">Largura</label>
+                <input
+                  id="campo-largura"
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  placeholder="Ex: 200"
+                />
+              </div>
+              <div>
+                <label for="campo-altura" class="mb-1 block text-sm font-medium text-slate-700">Altura</label>
+                <input
+                  id="campo-altura"
+                  type="number"
+                  min="1"
+                  step="1"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                  placeholder="Ex: 150"
+                />
+              </div>
+              <div>
+                <label for="campo-material" class="mb-1 block text-sm font-medium text-slate-700">Material</label>
+                <select
+                  id="campo-material"
+                  required
+                  class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                ></select>
+              </div>
+              <div>
+                <label for="campo-quantidade" class="mb-1 block text-sm font-medium text-slate-700">Quantidade</label>
+                <input
+                  id="campo-quantidade"
+                  type="number"
+                  min="1"
+                  step="1"
+                  value="1"
+                  required
+                  class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                />
+              </div>
+              <button
+                type="submit"
+                class="w-full rounded-lg bg-amber-500 py-3 font-semibold text-slate-900 shadow transition hover:bg-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+              >
+                Simular melhor chapa
+              </button>
+            </form>
+          </section>
+
+          <section class="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg lg:col-span-3">
+            <h2 class="text-lg font-semibold text-slate-800">Chapas viáveis</h2>
+            <p class="mt-1 text-sm text-slate-500">
+              Ordenadas por preço unitário (menor primeiro). Selecione a chapa que deseja usar no orçamento.
+            </p>
+            <div id="area-resultados" class="mt-6">
+              <p id="resultados-vazio" class="rounded-lg border border-dashed border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+                Preencha o formulário e clique em &quot;Simular melhor chapa&quot; para ver as opções.
+              </p>
+              <div id="resultados-lista" class="hidden space-y-3"></div>
+            </div>
+            <p id="chapa-selecionada-resumo" class="mt-4 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-900 ring-1 ring-amber-200/80 empty:hidden"></p>
+            <div class="mt-4">
+              <button
+                type="button"
+                id="btn-adicionar-orcamento"
+                disabled
+                class="w-full rounded-lg border border-amber-600 bg-amber-50 py-3 text-sm font-semibold text-amber-900 shadow-sm transition hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Adicionar opção selecionada ao orçamento
+              </button>
+            </div>
+          </section>
+        </div>
+
+        <!-- Dados cliente (ecrã + impressão) -->
+        <section
+          id="secao-dados-cliente"
+          class="mt-2 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-0 print:rounded-none print:border-0 print:shadow-none"
+        >
+          <h2 class="text-lg font-semibold text-slate-800 print:text-base">Dados do cliente</h2>
+          <div class="mt-4 grid gap-4 sm:grid-cols-2 print:mt-3">
+            <div>
+              <label for="cliente-nome" class="mb-1 block text-sm font-medium text-slate-700">Nome</label>
+              <input
+                id="cliente-nome"
+                type="text"
+                autocomplete="name"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none print:border-slate-400 print:bg-white"
+                placeholder="Nome ou empresa"
+              />
+            </div>
+            <div>
+              <label for="cliente-contacto" class="mb-1 block text-sm font-medium text-slate-700">Contacto</label>
+              <input
+                id="cliente-contacto"
+                type="text"
+                autocomplete="tel"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none print:border-slate-400 print:bg-white"
+                placeholder="Telefone ou e-mail"
+              />
+            </div>
+          </div>
+        </section>
+
+        <!-- Tabela de itens -->
+        <section
+          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-6 print:rounded-none print:border-0 print:p-0 print:shadow-none"
+        >
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between print:block">
+            <h2 class="text-lg font-semibold text-slate-800">Itens do orçamento</h2>
+            <p class="text-sm text-slate-500 print:hidden">Os itens são guardados automaticamente neste navegador.</p>
+          </div>
+
+          <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200 print:mt-4 print:border-slate-300">
+            <table class="w-full min-w-[720px] text-left text-sm">
+              <thead class="bg-slate-100 text-slate-700">
+                <tr>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Item</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Dimensões (mm)</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Material</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Qtd</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Chapa escolhida</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Preço unit.</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Total</th>
+                  <th class="print:hidden whitespace-nowrap px-4 py-3 font-semibold text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-itens-body" class="divide-y divide-slate-100 bg-white"></tbody>
+            </table>
+            <p
+              id="tabela-itens-vazio"
+              class="border-t border-slate-100 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500 print:hidden"
+            >
+              Nenhum item adicionado. Simule uma chapa e use &quot;Adicionar opção selecionada ao orçamento&quot;.
+            </p>
+          </div>
+        </section>
+
+        <!-- Resumo -->
+        <section
+          id="secao-resumo-orcamento"
+          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-6 print:rounded-none print:border-0 print:shadow-none"
+        >
+          <h2 class="text-lg font-semibold text-slate-800">Resumo do orçamento</h2>
+          <div class="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100">
+              <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Subtotal</p>
+              <p id="display-subtotal" class="mt-1 text-xl font-bold text-slate-900">R$ 0,00</p>
+            </div>
+            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 print:ring-slate-300">
+              <label for="campo-frete" class="text-xs font-medium uppercase tracking-wide text-slate-500">Frete (R$)</label>
+              <input
+                id="campo-frete"
+                type="number"
+                min="0"
+                step="0.01"
+                value="0"
+                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none print:border-slate-400"
+              />
+            </div>
+            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 print:ring-slate-300">
+              <label for="campo-desconto" class="text-xs font-medium uppercase tracking-wide text-slate-500">Desconto (%)</label>
+              <input
+                id="campo-desconto"
+                type="number"
+                min="0"
+                max="100"
+                step="0.1"
+                value="0"
+                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none print:border-slate-400"
+              />
+            </div>
+            <div class="rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200 sm:col-span-2 lg:col-span-1">
+              <p class="text-xs font-medium uppercase tracking-wide text-amber-900/80">Total geral</p>
+              <p id="display-total-geral" class="mt-1 text-2xl font-bold text-amber-900">R$ 0,00</p>
+            </div>
+          </div>
+
+          <div class="mt-8 flex flex-wrap gap-3 print:hidden">
+            <button
+              type="button"
+              id="btn-imprimir-orcamento"
+              class="inline-flex items-center justify-center rounded-lg bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow transition hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2"
+            >
+              Gerar orçamento (PDF / Imprimir)
+            </button>
+          </div>
+        </section>
+      </main>
+
+      <footer class="border-t border-slate-700/50 py-6 text-center text-xs text-slate-500 print:hidden">
+        Uso interno — valores simulados conforme parâmetros em <code class="rounded bg-slate-800 px-1 text-slate-300">config.js</code>
+      </footer>
+    </div>
+
+    <script src="js/config.js"></script>
+    <script src="js/calculos.js"></script>
+    <script src="js/ui.js"></script>
+  </body>
+</html>
