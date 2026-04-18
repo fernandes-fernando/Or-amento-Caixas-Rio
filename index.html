@@ -28,6 +28,30 @@
         display: none !important;
       }
 
+      /* Logótipo do orçamento (PDF): CSS explícito — evita colapso no motor de impressão e não depende só do Tailwind */
+      #print-container .orcamento-print-logo-wrap {
+        width: 144px;
+        height: 144px;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        box-sizing: border-box;
+        border: 1px solid #94a3b8;
+        background: #fff;
+        border-radius: 4px;
+      }
+      #print-container .orcamento-print-logo-img {
+        display: block;
+        max-width: 136px;
+        max-height: 136px;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+      }
+
       @media print {
         @page {
           margin: 8mm;
@@ -113,6 +137,29 @@
           font-size: 14pt;
           font-weight: 700;
           margin: 0 0 8px 0;
+        }
+
+        body.modo-imprimir-op #op-container .op-meta-bloco {
+          margin: 0 0 12px 0;
+          padding: 8px 10px;
+          border: 1px solid #ccc;
+          border-radius: 4px;
+          background: #fafafa;
+          font-size: 10pt;
+          line-height: 1.45;
+        }
+
+        body.modo-imprimir-op #op-container .op-meta-bloco p {
+          margin: 0 0 4px 0;
+        }
+
+        body.modo-imprimir-op #op-container .op-meta-bloco p:last-child {
+          margin-bottom: 0;
+        }
+
+        body.modo-imprimir-op #op-container .op-meta-rot {
+          font-weight: 600;
+          margin-right: 6px;
         }
 
         body.modo-imprimir-op #op-container .op-resp {
@@ -306,16 +353,37 @@
           </div>
         </details>
 
-        <section
+        <details
           id="painel-pendencias"
-          class="mb-8 rounded-2xl border border-amber-500/30 bg-slate-900/50 p-5 shadow-lg ring-1 ring-amber-500/20 print:hidden"
+          class="group mb-8 rounded-2xl border border-amber-500/30 bg-slate-900/50 shadow-lg ring-1 ring-amber-500/20 print:hidden"
         >
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
-            <h2 class="flex items-center gap-2 text-base font-semibold text-white">
-              <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-amber-500/25 text-amber-200">📋</span>
+          <summary
+            class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-5 py-4 text-left font-semibold text-white ring-amber-500/0 transition hover:bg-slate-800/50 focus:outline-none focus:ring-2 focus:ring-amber-500/30 [&::-webkit-details-marker]:hidden"
+          >
+            <span class="flex items-center gap-2">
+              <span class="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/25 text-amber-200 ring-1 ring-amber-500/30">📋</span>
               Painel de pendências
-            </h2>
-            <span class="text-xs text-slate-400">Atualização automática</span>
+              <span class="text-xs font-normal text-slate-400">(atualização automática)</span>
+            </span>
+            <span class="text-xs font-normal text-slate-400 group-open:hidden">Abrir</span>
+            <span class="hidden text-xs font-normal text-slate-400 group-open:inline">Fechar</span>
+          </summary>
+          <div class="border-t border-amber-500/20 px-5 pb-5 pt-2">
+          <div class="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-slate-600/50 bg-slate-950/30 px-3 py-3">
+            <div class="min-w-0">
+              <label for="pendencias-empresa-filtro" class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-400">Empresa</label>
+              <select
+                id="pendencias-empresa-filtro"
+                class="rounded-lg border border-slate-500 bg-slate-900 px-3 py-2 text-sm font-medium text-slate-100 shadow-sm outline-none focus:border-amber-400 focus:ring-1 focus:ring-amber-400/40"
+              >
+                <option value="todas" selected>Ambas</option>
+                <option value="caixas-rio">Caixas Rio</option>
+                <option value="cartpel">Cartpel</option>
+              </select>
+            </div>
+            <p class="max-w-md text-xs leading-relaxed text-slate-500">
+              Contadores e lista unificada respeitam o filtro. Ordenação da lista: maior tempo de espera ou de atraso no prazo primeiro.
+            </p>
           </div>
           <div class="grid gap-4 lg:grid-cols-3">
             <div class="rounded-xl border border-slate-600/60 bg-slate-950/40 p-4">
@@ -334,12 +402,82 @@
               <ul id="pendencias-atraso-lista" class="mt-3 max-h-36 space-y-1.5 overflow-y-auto text-xs text-red-100/90"></ul>
             </div>
           </div>
+          <details class="group mt-4 rounded-xl border border-slate-600/60 bg-slate-950/30 ring-1 ring-slate-700/40">
+            <summary
+              class="cursor-pointer list-none rounded-xl px-4 py-3 text-sm font-semibold text-amber-100 transition hover:bg-slate-800/60 [&::-webkit-details-marker]:hidden"
+            >
+              <span class="inline-flex items-center gap-2">
+                <span class="text-slate-400 group-open:rotate-0">▸</span>
+                Ver lista de prioridades
+              </span>
+              <span class="ml-2 text-xs font-normal text-slate-500">(ordenada por urgência)</span>
+            </summary>
+            <div class="border-t border-slate-600/50 px-3 pb-3 pt-2">
+              <ul id="lista-pendencias-detalhada" class="max-h-[min(24rem,50vh)] space-y-2 overflow-y-auto pr-1"></ul>
+            </div>
+          </details>
+          </div>
+        </details>
+
+        <!-- Informações do pedido -->
+        <section
+          id="secao-informacoes-pedido"
+          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-6 print:rounded-none print:border-0 print:shadow-none"
+        >
+          <h2 class="text-lg font-semibold text-slate-800 print:text-base">Informações do pedido</h2>
+          <div class="mt-4 space-y-4 print:mt-3">
+            <div class="rounded-xl border-2 border-sky-400 bg-gradient-to-r from-sky-50 via-white to-indigo-50/40 p-4 shadow-sm ring-1 ring-sky-200/70 sm:flex sm:items-end sm:justify-between sm:gap-4">
+              <div class="min-w-0 flex-1">
+                <label for="pedido-empresa" class="mb-2 block text-sm font-semibold uppercase tracking-wide text-sky-950">Empresa responsável</label>
+                <select
+                  id="pedido-empresa"
+                  class="w-full max-w-md rounded-lg border-2 border-sky-500 bg-white px-3 py-2.5 text-sm font-semibold text-slate-900 shadow-sm outline-none transition focus:border-sky-600 focus:ring-2 focus:ring-sky-500/25 print:border-slate-400"
+                >
+                  <option value="caixas-rio">Caixas Rio</option>
+                  <option value="cartpel">Cartpel</option>
+                </select>
+                <p class="mt-2 text-xs text-slate-600">Define cabeçalho, contatos e dados bancários no PDF do orçamento.</p>
+              </div>
+            </div>
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <label for="pedido-tipo-entrega" class="mb-1 block text-sm font-medium text-slate-700">Tipo de entrega</label>
+              <select
+                id="pedido-tipo-entrega"
+                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none print:border-slate-400"
+              >
+                <option value="entrega">Entrega</option>
+                <option value="retirada-proprio">Retirada — veículo próprio</option>
+                <option value="retirada-app">Retirada — veículo de aplicativo</option>
+              </select>
+            </div>
+            <div>
+              <label for="pedido-data-orcamento" class="mb-1 block text-sm font-medium text-slate-700">Data do orçamento</label>
+              <input
+                id="pedido-data-orcamento"
+                type="date"
+                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none print:border-slate-400 print:bg-white"
+              />
+            </div>
+            <div class="sm:col-span-2 lg:col-span-1">
+              <p class="mb-1 text-sm font-medium text-slate-700">Validade do orçamento</p>
+              <p id="pedido-validade-texto" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 print:border-slate-300 print:bg-white">
+                —
+              </p>
+            </div>
+            </div>
+          </div>
+          <p
+            class="mt-4 rounded-lg border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950 print:border-slate-300 print:bg-slate-50 print:text-slate-900"
+          >
+            Observação: o prazo de entrega é de até 5 dias úteis após a confirmação do pagamento.
+          </p>
         </section>
 
-        <!-- Dados do cliente (topo) -->
+        <!-- Dados do cliente -->
         <section
           id="secao-dados-cliente"
-          class="rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:rounded-none print:border-0 print:shadow-none"
+          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-6 print:rounded-none print:border-0 print:shadow-none"
         >
           <h2 class="text-lg font-semibold text-slate-800 print:text-base">Dados do cliente</h2>
           <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 print:mt-3">
@@ -398,60 +536,6 @@
               </select>
             </div>
           </div>
-        </section>
-
-        <!-- Informações do pedido -->
-        <section
-          id="secao-informacoes-pedido"
-          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:mt-6 print:rounded-none print:border-0 print:shadow-none"
-        >
-          <h2 class="text-lg font-semibold text-slate-800 print:text-base">Informações do pedido</h2>
-          <div class="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 print:mt-3">
-            <div>
-              <label for="pedido-tipo-entrega" class="mb-1 block text-sm font-medium text-slate-700">Tipo de entrega</label>
-              <select
-                id="pedido-tipo-entrega"
-                class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 outline-none print:border-slate-400"
-              >
-                <option value="entrega">Entrega</option>
-                <option value="retirada-proprio">Retirada — veículo próprio</option>
-                <option value="retirada-app">Retirada — veículo de aplicativo</option>
-              </select>
-            </div>
-            <div>
-              <label for="pedido-data-orcamento" class="mb-1 block text-sm font-medium text-slate-700">Data do orçamento</label>
-              <input
-                id="pedido-data-orcamento"
-                type="date"
-                class="w-full rounded-lg border border-slate-300 px-3 py-2 outline-none print:border-slate-400 print:bg-white"
-              />
-            </div>
-            <div class="sm:col-span-2 lg:col-span-1">
-              <p class="mb-1 text-sm font-medium text-slate-700">Validade do orçamento</p>
-              <p id="pedido-validade-texto" class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800 print:border-slate-300 print:bg-white">
-                —
-              </p>
-            </div>
-          </div>
-          <p
-            class="mt-4 rounded-lg border-l-4 border-amber-500 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-950 print:border-slate-300 print:bg-slate-50 print:text-slate-900"
-          >
-            Observação: o prazo de entrega é de até 5 dias úteis após a confirmação do pagamento.
-          </p>
-        </section>
-
-        <!-- Dados para pagamento -->
-        <section
-          id="secao-dados-pagamento"
-          class="mt-8 rounded-2xl border border-slate-200 bg-slate-50 p-6 shadow-inner print:mt-6 print:rounded-none print:border print:border-slate-300 print:bg-white print:shadow-none"
-        >
-          <h2 class="text-lg font-semibold text-slate-800 print:text-base">Dados para pagamento</h2>
-          <ul class="mt-4 space-y-2 text-sm text-slate-700 print:text-slate-800">
-            <li><span class="font-medium text-slate-900">Banco:</span> Itaú <span class="text-slate-500">|</span> <span class="font-medium">Ag:</span> 5992 <span class="text-slate-500">|</span> <span class="font-medium">CC:</span> 99764-2</li>
-            <li><span class="font-medium text-slate-900">Favorecido:</span> Caixas Rio Industria e Com. de Cartonagem LTDA</li>
-            <li><span class="font-medium text-slate-900">CNPJ:</span> 60.180.396/0001-28</li>
-            <li><span class="font-medium text-slate-900">Chave Pix:</span> 60180396000128</li>
-          </ul>
         </section>
 
         <div class="grid gap-8 lg:grid-cols-5 mt-2">
@@ -592,12 +676,12 @@
           <p class="mt-1 text-xs text-slate-500">
             Desconto só sobre o subtotal dos itens. Frete, faca e clichê somam-se ao subtotal já descontado, sem nova redução.
           </p>
-          <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-8">
-            <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 xl:col-span-1">
+          <div class="mt-6 grid min-w-0 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-9">
+            <div class="min-w-0 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-1 xl:col-span-2">
               <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Subtotal (itens)</p>
-              <p id="display-subtotal" class="mt-1 text-xl font-bold text-slate-900">R$ 0,00</p>
+              <p id="display-subtotal" class="mt-1 text-lg font-bold tabular-nums leading-snug tracking-tight text-slate-900">R$ 0,00</p>
             </div>
-            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 xl:col-span-1">
+            <div class="min-w-0 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:col-span-1 xl:col-span-1">
               <label for="campo-desconto" class="text-xs font-medium uppercase tracking-wide text-slate-500">Desconto (%)</label>
               <input
                 id="campo-desconto"
@@ -606,15 +690,15 @@
                 max="100"
                 step="0.1"
                 value="0"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none"
+                class="mt-1 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base font-semibold outline-none"
               />
-              <p class="mt-2 text-xs text-slate-500">Valor do desconto: <span id="display-valor-desconto" class="font-semibold text-slate-800">R$ 0,00</span></p>
+              <p class="mt-2 text-xs text-slate-500">Valor do desconto: <span id="display-valor-desconto" class="font-semibold tabular-nums text-slate-800">R$ 0,00</span></p>
             </div>
-            <div class="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 xl:col-span-1">
+            <div class="min-w-0 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-100 sm:col-span-1 xl:col-span-2">
               <p class="text-xs font-medium uppercase tracking-wide text-slate-500">Subtotal após desconto</p>
-              <p id="display-subtotal-liquido" class="mt-1 text-xl font-bold text-slate-900">R$ 0,00</p>
+              <p id="display-subtotal-liquido" class="mt-1 text-lg font-bold tabular-nums leading-snug tracking-tight text-slate-900">R$ 0,00</p>
             </div>
-            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 xl:col-span-1">
+            <div class="min-w-0 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:col-span-1 xl:col-span-1">
               <label for="campo-frete" class="text-xs font-medium uppercase tracking-wide text-slate-500">Frete (R$)</label>
               <input
                 id="campo-frete"
@@ -622,10 +706,10 @@
                 min="0"
                 step="0.01"
                 value="0"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none"
+                class="mt-1 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base font-semibold outline-none"
               />
             </div>
-            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 xl:col-span-1">
+            <div class="min-w-0 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:col-span-1 xl:col-span-1">
               <label for="campo-custo-faca" class="text-xs font-medium uppercase tracking-wide text-slate-500">Custo de faca (R$)</label>
               <input
                 id="campo-custo-faca"
@@ -633,10 +717,10 @@
                 min="0"
                 step="0.01"
                 value="0"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none"
+                class="mt-1 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base font-semibold outline-none"
               />
             </div>
-            <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200 xl:col-span-1">
+            <div class="min-w-0 rounded-xl bg-white p-4 ring-1 ring-slate-200 sm:col-span-1 xl:col-span-1">
               <label for="campo-custo-cliche" class="text-xs font-medium uppercase tracking-wide text-slate-500">Custo de clichê (R$)</label>
               <input
                 id="campo-custo-cliche"
@@ -644,12 +728,12 @@
                 min="0"
                 step="0.01"
                 value="0"
-                class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-lg font-semibold outline-none"
+                class="mt-1 w-full min-w-0 rounded-lg border border-slate-300 px-3 py-2 text-base font-semibold outline-none"
               />
             </div>
-            <div class="rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200 sm:col-span-2 xl:col-span-2">
+            <div class="min-w-0 rounded-xl bg-amber-50 p-4 ring-1 ring-amber-200 sm:col-span-2 xl:col-span-1">
               <p class="text-xs font-medium uppercase tracking-wide text-amber-900/80">Total geral</p>
-              <p id="display-total-geral" class="mt-1 text-2xl font-bold text-amber-900">R$ 0,00</p>
+              <p id="display-total-geral" class="mt-1 text-xl font-bold tabular-nums leading-snug tracking-tight text-amber-900">R$ 0,00</p>
             </div>
           </div>
 
@@ -692,7 +776,53 @@
           id="secao-historico-orcamentos"
           class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:hidden"
         >
-          <details id="dashboard-metricas-details" class="group mb-6 rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/80 ring-1 ring-slate-200/80">
+          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 class="text-lg font-semibold text-slate-800">Histórico de Orçamentos Salvos</h2>
+              <p class="mt-1 text-sm text-slate-500">Snapshots guardados neste navegador. Use Carregar para reabrir e gerar PDF ou ficha de produção.</p>
+            </div>
+          </div>
+          <div class="mt-4">
+            <label for="historico-busca" class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Buscar por cliente</label>
+            <input
+              type="search"
+              id="historico-busca"
+              autocomplete="off"
+              placeholder="Digite parte do nome ou razão social…"
+              class="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
+            />
+          </div>
+          <p id="historico-msg-feedback" class="mt-3 hidden text-sm font-medium text-emerald-700" role="status"></p>
+          <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
+            <table class="w-full min-w-[1040px] text-left text-sm">
+              <thead class="bg-slate-100 text-slate-700">
+                <tr>
+                  <th class="min-w-[14rem] whitespace-nowrap px-4 py-3 font-semibold">Identificador</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Empresa</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Nome do cliente</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Data</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Previsão</th>
+                  <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Valor total</th>
+                  <th class="min-w-[12rem] whitespace-nowrap px-4 py-3 font-semibold">Status</th>
+                  <th class="min-w-[13rem] whitespace-nowrap px-4 py-3 font-semibold text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="historico-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
+            </table>
+            <p
+              id="historico-vazio"
+              class="border-t border-slate-100 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500"
+            >
+              Nenhum orçamento salvo ainda. Preencha o orçamento e clique em &quot;Salvar Orçamento&quot;.
+            </p>
+          </div>
+        </section>
+
+        <section
+          id="secao-dashboard-metricas"
+          class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg print:hidden"
+        >
+          <details id="dashboard-metricas-details" class="group rounded-2xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/80 ring-1 ring-slate-200/80">
             <summary
               class="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-4 py-3 text-left font-semibold text-slate-800 transition hover:bg-white/60 [&::-webkit-details-marker]:hidden"
             >
@@ -737,6 +867,17 @@
                     <option value="anual">Anual</option>
                   </select>
                 </div>
+                <div>
+                  <label for="dashboard-empresa-filtro" class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Empresa</label>
+                  <select
+                    id="dashboard-empresa-filtro"
+                    class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm"
+                  >
+                    <option value="todas" selected>Todas as empresas</option>
+                    <option value="caixas-rio">Apenas Caixas Rio</option>
+                    <option value="cartpel">Apenas Cartpel</option>
+                  </select>
+                </div>
               </div>
               <div id="dashboard-cards-grid" class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
               <div id="dashboard-ranking-clientes" class="mt-4 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -763,47 +904,6 @@
               </div>
             </div>
           </details>
-
-          <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <h2 class="text-lg font-semibold text-slate-800">Histórico de Orçamentos Salvos</h2>
-              <p class="mt-1 text-sm text-slate-500">Snapshots guardados neste navegador. Use Carregar para reabrir e gerar PDF ou ficha de produção.</p>
-            </div>
-          </div>
-          <div class="mt-4">
-            <label for="historico-busca" class="mb-1 block text-xs font-medium uppercase tracking-wide text-slate-500">Buscar por cliente</label>
-            <input
-              type="search"
-              id="historico-busca"
-              autocomplete="off"
-              placeholder="Digite parte do nome ou razão social…"
-              class="w-full max-w-md rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none ring-sky-500/0 transition focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20"
-            />
-          </div>
-          <p id="historico-msg-feedback" class="mt-3 hidden text-sm font-medium text-emerald-700" role="status"></p>
-          <div class="mt-4 overflow-x-auto rounded-xl border border-slate-200">
-            <table class="w-full min-w-[1100px] text-left text-sm">
-              <thead class="bg-slate-100 text-slate-700">
-                <tr>
-                  <th class="min-w-[14rem] whitespace-nowrap px-4 py-3 font-semibold">Identificador</th>
-                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Nome do cliente</th>
-                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Origem</th>
-                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Data</th>
-                  <th class="whitespace-nowrap px-4 py-3 font-semibold">Previsão</th>
-                  <th class="whitespace-nowrap px-4 py-3 font-semibold text-right">Valor total</th>
-                  <th class="min-w-[12rem] whitespace-nowrap px-4 py-3 font-semibold">Status</th>
-                  <th class="min-w-[13rem] whitespace-nowrap px-4 py-3 font-semibold text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody id="historico-tbody" class="divide-y divide-slate-100 bg-white"></tbody>
-            </table>
-            <p
-              id="historico-vazio"
-              class="border-t border-slate-100 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500"
-            >
-              Nenhum orçamento salvo ainda. Preencha o orçamento e clique em &quot;Salvar Orçamento&quot;.
-            </p>
-          </div>
         </section>
       </main>
 

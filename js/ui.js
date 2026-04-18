@@ -57,6 +57,54 @@
   };
   const LS_PEDIDO_TIPO_ENTREGA = 'orcamento_pedido_tipo_entrega';
   const LS_PEDIDO_DATA_ORCAMENTO = 'orcamento_pedido_data_orcamento';
+  const LS_PEDIDO_EMPRESA = 'orcamento_pedido_empresa';
+  const LS_PENDENCIAS_EMPRESA_FILTRO = 'orcamento_pendencias_empresa_filtro';
+
+  const EMPRESA_CAIXAS_RIO = 'caixas-rio';
+  const EMPRESA_CARTPEL = 'cartpel';
+
+  const CONFIG_EMPRESAS = {
+    [EMPRESA_CAIXAS_RIO]: {
+      id: EMPRESA_CAIXAS_RIO,
+      nomeCurto: 'Caixas Rio',
+      siglaIdentificador: 'CAIXAS RIO',
+      logoRelPath: 'assets/logos/caixas-rio.png',
+      cnpj: '60.180.396/0001-28',
+      endereco: 'Rua General José Joaquim Ferreira, 93, Pavuna',
+      contatosLinhas: [
+        'Contato: (21) 3452-3472',
+        'Whatsapp: (21) 97218-2935',
+        'E-mail: caixasrioembalagens@gmail.com',
+      ],
+      pagamento: {
+        banco: 'Itaú',
+        agencia: '5992',
+        conta: '99764-2',
+        favorecido: 'Caixas Rio Industria e Com. de Cartonagem LTDA',
+        pix: '60180396000128',
+      },
+    },
+    [EMPRESA_CARTPEL]: {
+      id: EMPRESA_CARTPEL,
+      nomeCurto: 'Cartpel',
+      siglaIdentificador: 'CARTPEL',
+      logoRelPath: 'assets/logos/cartpel.png',
+      cnpj: '73.271.157/0001-25',
+      endereco: 'Rua General José Joaquim Ferreira, 95, Pavuna',
+      contatosLinhas: [
+        'Contato: (21) 3452-3472',
+        'Contato: (21) 2474-1070',
+        'Whatsapp: (21) 980221325',
+      ],
+      pagamento: {
+        banco: 'Itaú',
+        agencia: '0229',
+        conta: '389051',
+        favorecido: 'Cartpel Industria e Com. de Cartonagem LTDA',
+        pix: '73271157000125',
+      },
+    },
+  };
   const LS_PROXIMO_NUMERO_ORCAMENTO = 'orcamento_caixas_proximo_numero';
   const LS_HISTORICO_ORCAMENTOS = 'historico_caixas_rio';
   const LS_CLIENTES_CRM = 'clientes_cadastrados_rio';
@@ -103,6 +151,7 @@
     clienteCnpj: document.getElementById('cliente-cnpj'),
     clienteOrigem: document.getElementById('cliente-origem'),
     pedidoTipoEntrega: document.getElementById('pedido-tipo-entrega'),
+    pedidoEmpresa: document.getElementById('pedido-empresa'),
     pedidoDataOrcamento: document.getElementById('pedido-data-orcamento'),
     pedidoValidadeTexto: document.getElementById('pedido-validade-texto'),
     btnImprimir: document.getElementById('btn-imprimir-orcamento'),
@@ -121,6 +170,7 @@
     dashboardWrapMes: document.getElementById('dashboard-wrap-mes'),
     dashboardWrapAno: document.getElementById('dashboard-wrap-ano'),
     dashboardGraficoEscala: document.getElementById('dashboard-grafico-escala'),
+    dashboardEmpresaFiltro: document.getElementById('dashboard-empresa-filtro'),
     dashboardCardsGrid: document.getElementById('dashboard-cards-grid'),
     dashboardOrigemResumo: document.getElementById('dashboard-origem-resumo'),
     dashboardTemposMedios: document.getElementById('dashboard-tempos-medios'),
@@ -134,11 +184,55 @@
     pendenciasRetiradaCount: document.getElementById('pendencias-retirada-count'),
     pendenciasAtrasoCount: document.getElementById('pendencias-atraso-count'),
     pendenciasAtrasoLista: document.getElementById('pendencias-atraso-lista'),
+    pendenciasEmpresaFiltro: document.getElementById('pendencias-empresa-filtro'),
+    listaPendenciasDetalhada: document.getElementById('lista-pendencias-detalhada'),
     painelParams: document.getElementById('painel-config-parametros'),
     painelChapas: document.getElementById('painel-config-chapas'),
     btnSalvarConfig: document.getElementById('btn-salvar-config'),
     configMsgFeedback: document.getElementById('config-msg-feedback'),
   };
+
+  function validarIdEmpresa(id) {
+    return id === EMPRESA_CARTPEL ? EMPRESA_CARTPEL : EMPRESA_CAIXAS_RIO;
+  }
+
+  function obterConfigEmpresa(id) {
+    return CONFIG_EMPRESAS[validarIdEmpresa(id)];
+  }
+
+  function obterEmpresaSelecionada() {
+    if (el.pedidoEmpresa && el.pedidoEmpresa.value) return validarIdEmpresa(el.pedidoEmpresa.value);
+    return EMPRESA_CAIXAS_RIO;
+  }
+
+  function montarIdentificadorBasePedido(empresaId, nomeCliente, numeroSequencial) {
+    const cfg = obterConfigEmpresa(empresaId);
+    const n = Math.max(1, Math.floor(Number(numeroSequencial)) || 1);
+    const nome = (nomeCliente && String(nomeCliente).trim()) || 'Sem nome';
+    return `${cfg.siglaIdentificador} - ${nome} - #${String(n).padStart(3, '0')}`;
+  }
+
+  function identificadorBaseTemSiglaEmpresa(base) {
+    if (!base || typeof base !== 'string') return false;
+    const b = base.trim();
+    return Object.keys(CONFIG_EMPRESAS).some((k) => b.startsWith(`${CONFIG_EMPRESAS[k].siglaIdentificador} - `));
+  }
+
+  function migrarIdentificadorBaseParaSigla(entry) {
+    if (!entry || !entry.identificadorBase || typeof entry.identificadorBase !== 'string') return;
+    if (identificadorBaseTemSiglaEmpresa(entry.identificadorBase)) return;
+    const sem = entry.identificadorBase.trim();
+    const match = sem.match(/^(.*?)\s*-\s*#(\d{3})$/);
+    if (match) {
+      const nome = (match[1] && match[1].trim()) || 'Sem nome';
+      const num = parseInt(match[2], 10);
+      entry.identificadorBase = montarIdentificadorBasePedido(entry.empresa, nome, num);
+    }
+  }
+
+  function atualizarSecaoPagamentoEmpresaNaTela() {
+    /* Dados de pagamento só no PDF; painel na página foi removido. */
+  }
 
   function obterMetaStatusPedido(statusId) {
     return STATUS_PEDIDO_META.find((s) => s.id === statusId) || STATUS_PEDIDO_META[0];
@@ -163,6 +257,8 @@
     if (!e.origemCliente || !ORIGEM_CLIENTE_LABELS[e.origemCliente]) {
       e.origemCliente = 'site-organico';
     }
+    const empRaw = e.empresa || (e.pedido && e.pedido.empresa);
+    e.empresa = validarIdEmpresa(empRaw || EMPRESA_CAIXAS_RIO);
     if (!e.milestones || typeof e.milestones !== 'object') e.milestones = {};
     if (!e.milestones.orcamentoEnviadoEm && e.criadoEm) {
       e.milestones.orcamentoEnviadoEm = e.criadoEm;
@@ -175,9 +271,14 @@
       } else {
         e.identificadorBase =
           e.identificador ||
-          montarIdentificadorOrcamentoSalvo((e.cliente && e.cliente.nome) || 'Sem nome', e.numeroSequencial || 1);
+          montarIdentificadorBasePedido(
+            e.empresa,
+            (e.cliente && e.cliente.nome) || 'Sem nome',
+            e.numeroSequencial || 1
+          );
       }
     }
+    migrarIdentificadorBaseParaSigla(e);
     e.identificador = montarIdentificadorComStatus(e.identificadorBase, e.status);
     if (typeof e.followUpDismissed !== 'boolean') e.followUpDismissed = false;
     return e;
@@ -218,6 +319,7 @@
         : String(entry.identificador).trim();
     }
     if (entry.identificadorBase) {
+      migrarIdentificadorBaseParaSigla(entry);
       entry.identificador = montarIdentificadorComStatus(entry.identificadorBase, novoStatus);
     }
   }
@@ -436,12 +538,150 @@
     return diffDias > 3;
   }
 
+  let pendenciasEmpresaFiltroCarregado = false;
+
+  function garantirFiltroPendenciasEmpresaDoStorage() {
+    if (!el.pendenciasEmpresaFiltro || pendenciasEmpresaFiltroCarregado) return;
+    const saved = localStorage.getItem(LS_PENDENCIAS_EMPRESA_FILTRO);
+    if (saved === 'todas' || saved === EMPRESA_CAIXAS_RIO || saved === EMPRESA_CARTPEL) {
+      el.pendenciasEmpresaFiltro.value = saved;
+    }
+    pendenciasEmpresaFiltroCarregado = true;
+  }
+
+  function obterFiltroEmpresaPendencias() {
+    if (!el.pendenciasEmpresaFiltro) return 'todas';
+    const v = el.pendenciasEmpresaFiltro.value;
+    if (v === EMPRESA_CARTPEL || v === EMPRESA_CAIXAS_RIO) return v;
+    return 'todas';
+  }
+
+  function filtrarHistoricoPorEmpresaPendencias(lista) {
+    const f = obterFiltroEmpresaPendencias();
+    if (f === 'todas') return lista;
+    return lista.filter((e) => validarIdEmpresa(e.empresa) === f);
+  }
+
+  function diffDiasCorridosMeiaNoite(inicio, fim) {
+    const a = new Date(inicio);
+    if (Number.isNaN(a.getTime())) return 0;
+    a.setHours(0, 0, 0, 0);
+    const b = new Date(fim);
+    if (Number.isNaN(b.getTime())) return 0;
+    b.setHours(0, 0, 0, 0);
+    return Math.floor((b.getTime() - a.getTime()) / 86400000);
+  }
+
+  function obterIsoEntradaStatusAtual(entry) {
+    const m = entry.milestones && typeof entry.milestones === 'object' ? entry.milestones : {};
+    const st = entry.status;
+    if (st === STATUS_PEDIDO.APROVADO_PAGO) return m.aprovadoEm || m.orcamentoEnviadoEm || entry.criadoEm;
+    if (st === STATUS_PEDIDO.EM_PRODUCAO) return m.emProducaoEm || m.aprovadoEm || entry.criadoEm;
+    if (st === STATUS_PEDIDO.PRONTO_ENTREGA) return m.prontoEntregaEm || m.emProducaoEm || entry.criadoEm;
+    return entry.criadoEm;
+  }
+
+  function diasDesdeEntradaNoStatusAtual(entry) {
+    const iso = obterIsoEntradaStatusAtual(entry);
+    if (!iso) return 0;
+    const d0 = new Date(iso);
+    if (Number.isNaN(d0.getTime())) return 0;
+    return Math.max(0, diffDiasCorridosMeiaNoite(d0, new Date()));
+  }
+
+  function diasAtrasoAlemDoPrazoProducao(entry) {
+    if (!pedidoEstaAtrasado(entry)) return 0;
+    const prazo = parseDataISO(entry.dataPrometidaProducao);
+    if (!prazo) return 0;
+    return Math.max(0, diffDiasCorridosMeiaNoite(prazo, new Date()));
+  }
+
+  /** Maior entre espera no status atual e dias após o prazo de produção (quando aplicável). */
+  function prioridadeUrgenciaPendenciaDias(entry) {
+    return Math.max(diasDesdeEntradaNoStatusAtual(entry), diasAtrasoAlemDoPrazoProducao(entry));
+  }
+
+  function entryApareceNaListaPrioridadesPendencias(e) {
+    const st = e.status;
+    return (
+      st === STATUS_PEDIDO.APROVADO_PAGO ||
+      st === STATUS_PEDIDO.EM_PRODUCAO ||
+      st === STATUS_PEDIDO.PRONTO_ENTREGA
+    );
+  }
+
+  function extrairNumeroPedidoCurto(entry) {
+    const n = entry.numeroSequencial;
+    if (Number.isFinite(Number(n)) && Number(n) >= 1) {
+      return `#${String(Math.floor(Number(n))).padStart(3, '0')}`;
+    }
+    const base = entry.identificadorBase || entry.identificador || '';
+    const m = String(base).match(/#(\d{3})/);
+    return m ? `#${m[1]}` : '—';
+  }
+
+  function textoPendenciaAtrasoOuAguardando(entry) {
+    const diasAtraso = diasAtrasoAlemDoPrazoProducao(entry);
+    if (diasAtraso > 0) {
+      return {
+        classe: 'text-red-200',
+        texto: `🔴 Atrasado há ${diasAtraso} ${diasAtraso === 1 ? 'dia' : 'dias'}`,
+      };
+    }
+    const diasEsp = diasDesdeEntradaNoStatusAtual(entry);
+    if (diasEsp === 0) {
+      return { classe: 'text-sky-200', texto: '🔵 Aguardando desde hoje' };
+    }
+    return {
+      classe: 'text-sky-200',
+      texto: `🔵 Aguardando há ${diasEsp} ${diasEsp === 1 ? 'dia' : 'dias'}`,
+    };
+  }
+
+  function renderizarListaPrioridadesPendencias(todosFiltrados) {
+    if (!el.listaPendenciasDetalhada) return;
+    const pendentes = todosFiltrados.filter((e) => entryApareceNaListaPrioridadesPendencias(e));
+    if (pendentes.length === 0) {
+      el.listaPendenciasDetalhada.innerHTML =
+        '<li class="rounded-lg border border-slate-600/50 bg-slate-950/40 px-3 py-2 text-sm text-slate-400">Nenhuma pendência operacional neste filtro.</li>';
+      return;
+    }
+    const ordenados = [...pendentes].sort(
+      (a, b) => prioridadeUrgenciaPendenciaDias(b) - prioridadeUrgenciaPendenciaDias(a)
+    );
+    el.listaPendenciasDetalhada.innerHTML = ordenados
+      .map((e) => {
+        const cfgEmp = obterConfigEmpresa(e.empresa);
+        const emp = escapeHtml(cfgEmp.nomeCurto);
+        const cliente = escapeHtml((e.cliente && e.cliente.nome) || '—');
+        const num = escapeHtml(extrairNumeroPedidoCurto(e));
+        const meta = obterMetaStatusPedido(e.status);
+        const stLabel = escapeHtml(meta.label);
+        const { classe, texto } = textoPendenciaAtrasoOuAguardando(e);
+        const urg = prioridadeUrgenciaPendenciaDias(e);
+        const idAttr = escapeHtml(e.id);
+        return `<li class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-slate-600/60 bg-slate-950/50 px-3 py-2 text-xs leading-snug text-slate-200" data-pendencia-dias="${urg}">
+          <div class="min-w-0 flex flex-1 flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span class="font-semibold text-amber-100/95">[${emp}]</span>
+            <span class="text-slate-100">${cliente} ${num}</span>
+            <span class="text-slate-400">|</span>
+            <span class="text-slate-300">${stLabel}</span>
+            <span class="text-slate-400">|</span>
+            <span class="${classe} font-medium">${texto}</span>
+          </div>
+          <button type="button" class="shrink-0 rounded-lg border border-sky-400/60 bg-sky-500/20 px-2.5 py-1 text-[11px] font-semibold text-sky-100 transition hover:bg-sky-500/35" data-pendencia-carregar="${idAttr}">Carregar</button>
+        </li>`;
+      })
+      .join('');
+  }
+
   function renderizarPainelPendencias() {
     if (!el.pendenciasOpCount || !el.pendenciasOpLista) return;
-    const todos = lerHistoricoOrcamentos();
+    garantirFiltroPendenciasEmpresaDoStorage();
+    const todos = filtrarHistoricoPorEmpresaPendencias(lerHistoricoOrcamentos());
     const aguardandoOp = todos
       .filter((e) => e.status === STATUS_PEDIDO.APROVADO_PAGO)
-      .sort((a, b) => new Date(a.criadoEm || 0) - new Date(b.criadoEm || 0));
+      .sort((a, b) => prioridadeUrgenciaPendenciaDias(b) - prioridadeUrgenciaPendenciaDias(a));
     el.pendenciasOpCount.textContent = String(aguardandoOp.length);
     el.pendenciasOpLista.innerHTML = aguardandoOp
       .slice(0, 12)
@@ -462,6 +702,7 @@
     if (el.pendenciasAtrasoCount) el.pendenciasAtrasoCount.textContent = String(atrasados.length);
     if (el.pendenciasAtrasoLista) {
       el.pendenciasAtrasoLista.innerHTML = atrasados
+        .sort((a, b) => prioridadeUrgenciaPendenciaDias(b) - prioridadeUrgenciaPendenciaDias(a))
         .slice(0, 12)
         .map((e) => {
           const id = escapeHtml(e.identificadorBase || e.identificador || '—');
@@ -473,6 +714,8 @@
         el.pendenciasAtrasoLista.innerHTML = '<li class="text-emerald-200/80">Nenhum atraso no prazo.</li>';
       }
     }
+
+    renderizarListaPrioridadesPendencias(todos);
   }
 
   function carregarExtras() {
@@ -506,6 +749,14 @@
     }
 
     if (el.pedidoTipoEntrega && tipoEnt !== null) el.pedidoTipoEntrega.value = tipoEnt;
+    const empLs = localStorage.getItem(LS_PEDIDO_EMPRESA);
+    if (el.pedidoEmpresa) {
+      if (empLs && (empLs === EMPRESA_CAIXAS_RIO || empLs === EMPRESA_CARTPEL)) {
+        el.pedidoEmpresa.value = empLs;
+      } else if (!el.pedidoEmpresa.value) {
+        el.pedidoEmpresa.value = EMPRESA_CAIXAS_RIO;
+      }
+    }
     if (el.pedidoDataOrcamento) {
       if (dataOrc !== null && dataOrc !== '') {
         el.pedidoDataOrcamento.value = dataOrc;
@@ -514,6 +765,7 @@
       }
     }
     atualizarTextoValidadeOrcamento(DIAS_VALIDADE_PADRAO);
+    atualizarSecaoPagamentoEmpresaNaTela();
   }
 
   function guardarExtras() {
@@ -528,6 +780,7 @@
     if (el.clienteOrigem) localStorage.setItem(LS_CLIENTE_ORIGEM, el.clienteOrigem.value);
     if (el.pedidoTipoEntrega) localStorage.setItem(LS_PEDIDO_TIPO_ENTREGA, el.pedidoTipoEntrega.value);
     if (el.pedidoDataOrcamento) localStorage.setItem(LS_PEDIDO_DATA_ORCAMENTO, el.pedidoDataOrcamento.value);
+    if (el.pedidoEmpresa) localStorage.setItem(LS_PEDIDO_EMPRESA, el.pedidoEmpresa.value);
   }
 
   function limparDadosOrcamentoComercial() {
@@ -545,8 +798,10 @@
     if (el.clienteCnpj) el.clienteCnpj.value = '';
     if (el.clienteOrigem) el.clienteOrigem.value = 'site-organico';
     if (el.pedidoTipoEntrega) el.pedidoTipoEntrega.selectedIndex = 0;
+    if (el.pedidoEmpresa) el.pedidoEmpresa.value = EMPRESA_CAIXAS_RIO;
     if (el.pedidoDataOrcamento) el.pedidoDataOrcamento.value = dataHojeISO();
     atualizarTextoValidadeOrcamento();
+    atualizarSecaoPagamentoEmpresaNaTela();
 
     el.campoFrete.value = '0';
     el.campoDesconto.value = '0';
@@ -598,9 +853,14 @@
     return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function montarIdentificadorOrcamentoSalvo(nomeCliente, numeroSequencial) {
-    const n = Math.max(1, Math.floor(Number(numeroSequencial)) || 1);
-    return `${nomeCliente} - #${String(n).padStart(3, '0')}`;
+  /** Data e hora em duas linhas (apenas dígitos formatados — seguro para innerHTML). */
+  function formatarDataHoraHistoricoCelulaHtml(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) return '—';
+    const data = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+    const hora = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    return `<div class="leading-tight"><span class="block whitespace-nowrap">${data}</span><span class="block whitespace-nowrap text-xs text-slate-500">${hora}</span></div>`;
   }
 
   function mostrarFeedbackHistorico(msg) {
@@ -637,6 +897,13 @@
       });
     }
     return lista;
+  }
+
+  function filtrarHistoricoEmpresaDashboard(lista) {
+    if (!el.dashboardEmpresaFiltro) return lista;
+    const v = el.dashboardEmpresaFiltro.value || 'todas';
+    if (v === 'todas') return lista;
+    return lista.filter((e) => validarIdEmpresa(e.empresa) === v);
   }
 
   function getNumeroSemanaSimples(d) {
@@ -778,7 +1045,8 @@
   function renderizarDashboardMetricas() {
     if (!el.dashboardCardsGrid) return;
     const listaFull = lerHistoricoOrcamentos();
-    const lista = filtrarHistoricoPeriodoDashboard(listaFull);
+    let lista = filtrarHistoricoPeriodoDashboard(listaFull);
+    lista = filtrarHistoricoEmpresaDashboard(lista);
 
     let totalOrcado = 0;
     let totalVendido = 0;
@@ -970,7 +1238,8 @@
           const ident = `${e.identificador || ''} ${e.identificadorBase || ''}`.toLowerCase();
           const st = obterMetaStatusPedido(e.status).label.toLowerCase();
           const origemTxt = textoOrigemCliente(e.origemCliente).toLowerCase();
-          return nome.includes(q) || ident.includes(q) || st.includes(q) || origemTxt.includes(q);
+          const empTxt = obterConfigEmpresa(e.empresa).nomeCurto.toLowerCase();
+          return nome.includes(q) || ident.includes(q) || st.includes(q) || origemTxt.includes(q) || empTxt.includes(q);
         })
       : todos;
 
@@ -999,8 +1268,7 @@
         const total = e.resumo && Number.isFinite(Number(e.resumo.total)) ? Number(e.resumo.total) : 0;
         const nome = escapeHtml((e.cliente && e.cliente.nome) || '—');
         const ident = escapeHtml(e.identificador || '—');
-        const origem = escapeHtml(textoOrigemCliente(e.origemCliente));
-        const quando = escapeHtml(formatarDataHoraHistorico(e.criadoEm));
+        const quandoCel = formatarDataHoraHistoricoCelulaHtml(e.criadoEm);
         const idAttr = escapeHtml(e.id);
         const stId = e.status || STATUS_PEDIDO.ORCAMENTO_ENVIADO;
         const meta = obterMetaStatusPedido(stId);
@@ -1018,6 +1286,11 @@
         const iconeAtraso = atrasado
           ? '<span class="icone-atraso-pisca ml-1 inline-block" title="Fora do prazo prometido">⚠️</span>'
           : '';
+        const cfgEmp = obterConfigEmpresa(e.empresa);
+        const badgeEmp =
+          e.empresa === EMPRESA_CARTPEL
+            ? 'bg-violet-100 text-violet-900 ring-1 ring-violet-200'
+            : 'bg-sky-100 text-sky-900 ring-1 ring-sky-200';
         return `
         <tr class="${trClass}">
           <td class="max-w-[18rem] px-4 py-3">
@@ -1025,9 +1298,11 @@
             <span class="mt-1 inline-flex rounded-full px-2 py-0.5 text-[10px] font-semibold ${meta.badgeClass}">${escapeHtml(meta.label)}</span>
             ${showFollow ? `<span class="mt-1 mr-1 inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-800 ring-1 ring-rose-200">Relembre o cliente<button type="button" class="rounded px-1 text-[10px] font-bold text-rose-600 hover:bg-rose-200" data-historico-dismiss-follow="${idAttr}" title="Já entrei em contato">✕</button></span>` : ''}
           </td>
+          <td class="px-4 py-3 align-middle text-center">
+            <span class="inline-flex rounded-full px-2.5 py-1 text-[11px] font-semibold ${badgeEmp}">${escapeHtml(cfgEmp.nomeCurto)}</span>
+          </td>
           <td class="px-4 py-3 text-slate-700">${nome}</td>
-          <td class="whitespace-nowrap px-4 py-3 text-slate-600">${origem}</td>
-          <td class="whitespace-nowrap px-4 py-3 text-slate-600">${quando}</td>
+          <td class="px-4 py-3 align-middle text-slate-600">${quandoCel}</td>
           <td class="whitespace-nowrap px-4 py-3 text-slate-700">${prev}</td>
           <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900">${formatarMoeda(total)}</td>
           <td class="min-w-[12rem] px-4 py-3 print:hidden">
@@ -1061,7 +1336,8 @@
 
     const num = lerProximoNumeroOrcamento();
     const nomeBase = (el.clienteNome && el.clienteNome.value.trim()) || 'Sem nome';
-    const identificadorBase = montarIdentificadorOrcamentoSalvo(nomeBase, num);
+    const empresaId = obterEmpresaSelecionada();
+    const identificadorBase = montarIdentificadorBasePedido(empresaId, nomeBase, num);
     const origemVal = el.clienteOrigem && el.clienteOrigem.value ? el.clienteOrigem.value : 'site-organico';
     const identificador = montarIdentificadorComStatus(identificadorBase, STATUS_PEDIDO.ORCAMENTO_ENVIADO);
     const criadoIso = new Date().toISOString();
@@ -1077,6 +1353,7 @@
       id: novoId(),
       identificador,
       identificadorBase,
+      empresa: empresaId,
       numeroSequencial: num,
       criadoEm: criadoIso,
       status: STATUS_PEDIDO.ORCAMENTO_ENVIADO,
@@ -1094,6 +1371,7 @@
       pedido: {
         tipoEntrega: el.pedidoTipoEntrega ? el.pedidoTipoEntrega.value : '',
         dataOrcamento: el.pedidoDataOrcamento ? el.pedidoDataOrcamento.value : '',
+        empresa: empresaId,
       },
       fechamento: {
         frete,
@@ -1152,6 +1430,11 @@
     if (el.pedidoTipoEntrega && entry.pedido && entry.pedido.tipoEntrega) {
       el.pedidoTipoEntrega.value = entry.pedido.tipoEntrega;
     }
+    if (el.pedidoEmpresa) {
+      const empCarregar = validarIdEmpresa(entry.empresa || (entry.pedido && entry.pedido.empresa));
+      el.pedidoEmpresa.value = empCarregar;
+    }
+    atualizarSecaoPagamentoEmpresaNaTela();
     if (el.pedidoDataOrcamento) {
       if (duplicar) {
         el.pedidoDataOrcamento.value = dataHojeISO();
@@ -1418,6 +1701,11 @@
   function preencherContainerOP() {
     if (!el.opContainer) return;
     const dataStr = formatarDataBR(new Date());
+    const cfgOp = obterConfigEmpresa(obterEmpresaSelecionada());
+    const nomeClienteOp = el.clienteNome ? el.clienteNome.value.trim() : '';
+    const nomeClienteDisplay = nomeClienteOp || 'Sem nome';
+    const proxNum = lerProximoNumeroOrcamento();
+    const refOrcamento = montarIdentificadorBasePedido(obterEmpresaSelecionada(), nomeClienteDisplay, proxNum);
     const linhas = itensOrcamento
       .map((item, i) => {
         const numItem = String(i + 1);
@@ -1446,6 +1734,11 @@
     el.opContainer.innerHTML = `
       <div class="op-doc">
         <h1 class="op-titulo">ORDEM DE PRODUÇÃO — Data: ${escapeHtml(dataStr)}</h1>
+        <div class="op-meta-bloco">
+          <p><span class="op-meta-rot">Empresa</span>${escapeHtml(cfgOp.nomeCurto)}</p>
+          <p><span class="op-meta-rot">Cliente</span>${escapeHtml(nomeClienteDisplay)}</p>
+          <p><span class="op-meta-rot">Pedido / orçamento</span>${escapeHtml(refOrcamento)}</p>
+        </div>
         <p class="op-resp">Responsável pelo Corte: ________________________________</p>
         <table class="op-tabela">
           <thead>
@@ -1506,6 +1799,49 @@
     });
   }
 
+  /** Evita que beforeprint apague o HTML já carregado quando o utilizador imprime após aguardar as imagens. */
+  let suprimirReRenderPrintBeforePrint = false;
+
+  function aguardarImagensDoContainer(root) {
+    if (!root) return Promise.resolve();
+    const imgs = Array.from(root.querySelectorAll('img[src]'));
+    if (!imgs.length) return Promise.resolve();
+    return Promise.all(
+      imgs.map(
+        (img) =>
+          new Promise((resolve) => {
+            const finish = () => resolve();
+            const afterDecode = () => {
+              if (typeof img.decode === 'function') {
+                img.decode().then(finish).catch(finish);
+              } else {
+                finish();
+              }
+            };
+            if (img.complete && img.naturalWidth > 0) {
+              afterDecode();
+              return;
+            }
+            img.addEventListener('load', afterDecode, { once: true });
+            img.addEventListener('error', finish, { once: true });
+          })
+      )
+    );
+  }
+
+  function preloadLogosEmpresas() {
+    try {
+      Object.keys(CONFIG_EMPRESAS).forEach((id) => {
+        const rel = CONFIG_EMPRESAS[id].logoRelPath;
+        if (!rel) return;
+        const im = new Image();
+        im.src = new URL(rel, window.location.href).href;
+      });
+    } catch {
+      /* noop */
+    }
+  }
+
   function renderizarDocumentoImpressao() {
     const root = el.printContainer;
     if (!root) return;
@@ -1554,17 +1890,32 @@
     const doc = el.clienteCnpj ? el.clienteCnpj.value.trim() : '';
 
     const validadeTxt = el.pedidoValidadeTexto ? el.pedidoValidadeTexto.textContent.trim() : '—';
+    const cfgPdf = obterConfigEmpresa(obterEmpresaSelecionada());
+    const contatosHeaderHtml = cfgPdf.contatosLinhas
+      .map((linha) => `<p>${escapeHtml(linha)}</p>`)
+      .join('');
+    const pPag = cfgPdf.pagamento;
+    let logoSrcAttr = '';
+    if (cfgPdf.logoRelPath) {
+      try {
+        logoSrcAttr = escapeHtml(new URL(cfgPdf.logoRelPath, window.location.href).href);
+      } catch {
+        logoSrcAttr = escapeHtml(cfgPdf.logoRelPath);
+      }
+    }
+    const logoAlt = escapeHtml(cfgPdf.nomeCurto);
 
     root.innerHTML = `
       <div class="mx-auto max-w-[190mm]">
         <header class="mb-3 flex flex-row items-start justify-between gap-4 border-b border-slate-300 pb-3">
-          <div class="flex h-[72px] w-[72px] shrink-0 items-center justify-center rounded border-2 border-dashed border-slate-400 bg-slate-50 text-[9px] font-medium leading-tight text-slate-500 text-center px-1">Logótipo</div>
+          <div class="orcamento-print-logo-wrap">
+            <img src="${logoSrcAttr}" alt="${logoAlt}" class="orcamento-print-logo-img" loading="eager" decoding="sync" />
+          </div>
           <div class="min-w-0 flex-1 text-right text-[10.5pt] leading-snug text-slate-900">
-            <p class="text-[16pt] font-bold leading-tight">Caixas Rio</p>
-            <p class="mt-0.5">Endereço: Rua General José Joaquim Ferreira, 93, Pavuna</p>
-            <p>Contato: (21) 3452-3472</p>
-            <p>Whatsapp: (21) 97218-2935</p>
-            <p>E-mail: caixasrioembalagens@gmail.com</p>
+            <p class="text-[16pt] font-bold leading-tight">${escapeHtml(cfgPdf.nomeCurto)}</p>
+            <p class="mt-0.5"><span class="font-semibold">CNPJ:</span> ${escapeHtml(cfgPdf.cnpj)}</p>
+            <p class="mt-0.5">Endereço: ${escapeHtml(cfgPdf.endereco)}</p>
+            ${contatosHeaderHtml}
           </div>
         </header>
 
@@ -1602,6 +1953,7 @@
 
         <section class="mb-3 print-no-break rounded border border-slate-200 bg-slate-50 px-3 py-2 text-[9.5pt] text-slate-800">
           <h2 class="mb-1 text-[11pt] font-bold text-slate-900">Informações do pedido</h2>
+          <p><span class="font-semibold">Empresa responsável:</span> ${escapeHtml(cfgPdf.nomeCurto)}</p>
           <p><span class="font-semibold">Tipo de entrega:</span> ${escapeHtml(obterTextoTipoEntregaSelecionado())}</p>
           <p><span class="font-semibold">Data do orçamento:</span> ${escapeHtml(formatarDataOrcamentoExibicao())}</p>
           <p><span class="font-semibold">Validade:</span> ${escapeHtml(validadeTxt)}</p>
@@ -1610,10 +1962,10 @@
 
         <section class="print-no-break rounded border border-slate-200 px-3 py-2 text-[9pt] text-slate-700">
           <h2 class="mb-1 text-[10pt] font-bold text-slate-900">Dados para pagamento</h2>
-          <p><span class="font-semibold text-slate-800">Banco:</span> Itaú <span class="text-slate-400">|</span> <span class="font-semibold">Ag:</span> 5992 <span class="text-slate-400">|</span> <span class="font-semibold">CC:</span> 99764-2</p>
-          <p><span class="font-semibold text-slate-800">Favorecido:</span> Caixas Rio Industria e Com. de Cartonagem LTDA</p>
-          <p><span class="font-semibold text-slate-800">CNPJ:</span> 60.180.396/0001-28</p>
-          <p><span class="font-semibold text-slate-800">Chave Pix:</span> 60180396000128</p>
+          <p><span class="font-semibold text-slate-800">Banco:</span> ${escapeHtml(pPag.banco)} <span class="text-slate-400">|</span> <span class="font-semibold">Ag:</span> ${escapeHtml(pPag.agencia)} <span class="text-slate-400">|</span> <span class="font-semibold">CC:</span> ${escapeHtml(pPag.conta)}</p>
+          <p><span class="font-semibold text-slate-800">Favorecido:</span> ${escapeHtml(pPag.favorecido)}</p>
+          <p><span class="font-semibold text-slate-800">CNPJ:</span> ${escapeHtml(cfgPdf.cnpj)}</p>
+          <p><span class="font-semibold text-slate-800">Chave Pix:</span> ${escapeHtml(pPag.pix)}</p>
         </section>
       </div>
     `;
@@ -2104,6 +2456,12 @@
   if (el.clienteEmail) el.clienteEmail.addEventListener('input', guardarExtras);
   if (el.clienteCnpj) el.clienteCnpj.addEventListener('input', guardarExtras);
   if (el.pedidoTipoEntrega) el.pedidoTipoEntrega.addEventListener('change', guardarExtras);
+  if (el.pedidoEmpresa) {
+    el.pedidoEmpresa.addEventListener('change', () => {
+      guardarExtras();
+      atualizarSecaoPagamentoEmpresaNaTela();
+    });
+  }
   if (el.pedidoDataOrcamento) {
     el.pedidoDataOrcamento.addEventListener('change', () => {
       atualizarTextoValidadeOrcamento(DIAS_VALIDADE_PADRAO);
@@ -2117,12 +2475,22 @@
     });
   }
 
-  el.btnImprimir.addEventListener('click', () => {
-    window.print();
+  el.btnImprimir.addEventListener('click', async () => {
+    renderizarDocumentoImpressao();
+    await aguardarImagensDoContainer(el.printContainer);
+    suprimirReRenderPrintBeforePrint = true;
+    try {
+      window.print();
+    } finally {
+      window.queueMicrotask(() => {
+        suprimirReRenderPrintBeforePrint = false;
+      });
+    }
   });
 
   window.addEventListener('beforeprint', () => {
     if (document.body.classList.contains('modo-imprimir-op')) return;
+    if (suprimirReRenderPrintBeforePrint) return;
     renderizarDocumentoImpressao();
   });
 
@@ -2141,6 +2509,17 @@
   if (el.historicoBusca) {
     el.historicoBusca.addEventListener('input', () => {
       renderizarHistorico();
+    });
+  }
+
+  if (el.painelPendencias) {
+    el.painelPendencias.addEventListener('click', (e) => {
+      const bPend = e.target.closest('[data-pendencia-carregar]');
+      if (bPend) {
+        e.preventDefault();
+        const idP = bPend.getAttribute('data-pendencia-carregar');
+        if (idP) carregarOrcamentoDoHistorico(idP);
+      }
     });
   }
 
@@ -2188,6 +2567,14 @@
     el.clienteOrigem.addEventListener('change', guardarExtras);
   }
 
+  if (el.pendenciasEmpresaFiltro) {
+    el.pendenciasEmpresaFiltro.addEventListener('change', () => {
+      localStorage.setItem(LS_PENDENCIAS_EMPRESA_FILTRO, el.pendenciasEmpresaFiltro.value);
+      pendenciasEmpresaFiltroCarregado = true;
+      renderizarPainelPendencias();
+    });
+  }
+
   if (el.dashboardPeriodoTipo) {
     el.dashboardPeriodoTipo.addEventListener('change', () => {
       sincronizarVisibilidadePeriodoDashboard();
@@ -2209,6 +2596,11 @@
       renderizarDashboardMetricas();
     });
   }
+  if (el.dashboardEmpresaFiltro) {
+    el.dashboardEmpresaFiltro.addEventListener('change', () => {
+      renderizarDashboardMetricas();
+    });
+  }
 
   if (el.dashboardMetricasDetails) {
     el.dashboardMetricasDetails.addEventListener('toggle', () => {
@@ -2227,6 +2619,7 @@
   carregarExtras();
   renderizarTabelaItens();
   renderizarHistorico();
+  preloadLogosEmpresas();
 
   if (estaAutenticado()) {
     mostrarApp();
