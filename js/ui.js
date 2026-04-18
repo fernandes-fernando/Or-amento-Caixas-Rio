@@ -2240,6 +2240,47 @@
     el.btnAdicionar.disabled = opcoesAtual.length === 0;
   }
 
+  function lerPrecoUnitarioDoInputOpcao(inputEl) {
+    const raw = String(inputEl.value ?? '')
+      .trim()
+      .replace(',', '.');
+    let v = parseFloat(raw);
+    if (!Number.isFinite(v) || v < 0) v = 0;
+    return v;
+  }
+
+  /**
+   * Mantém `opcoesAtual` e o texto "Total" alinhados ao preço unitário editável.
+   * @param {{ normalizarInput?: boolean }} opts - se true, reescreve o input com 2 casas (ex.: ao sair do campo).
+   */
+  function sincronizarPrecoUnitarioLinhaResultado(inputEl, opts = {}) {
+    const idx = parseInt(inputEl.getAttribute('data-indice-chapa'), 10);
+    const op = opcoesAtual.find((o) => o.indiceChapa === idx);
+    if (!op) return;
+    const rawStr = String(inputEl.value ?? '').trim();
+    const rawNum = parseFloat(rawStr.replace(',', '.'));
+    if (Number.isFinite(rawNum) && rawNum < 0) {
+      inputEl.value = '0';
+    }
+    const v = lerPrecoUnitarioDoInputOpcao(inputEl);
+    op.precoUnitario = v;
+    op.precoTotal = v * op.quantidade;
+    if (opts.normalizarInput) {
+      inputEl.value = v.toFixed(2);
+    }
+    const row = inputEl.closest('.opcao-chapa-row');
+    const totalEl = row && row.querySelector('.opcao-preco-total');
+    if (totalEl) totalEl.textContent = formatarMoeda(op.precoTotal);
+  }
+
+  function atualizarResumoSePrecoDaLinhaAtiva(inputEl) {
+    const sel = el.resultadosLista.querySelector('input[name="chapa-escolhida"]:checked');
+    if (!sel) return;
+    const idxSel = parseInt(sel.value, 10);
+    const idxInp = parseInt(inputEl.getAttribute('data-indice-chapa'), 10);
+    if (idxSel === idxInp) atualizarResumoSelecao(opcoesAtual);
+  }
+
   function renderizarOpcoes(opcoes) {
     opcoesAtual = opcoes;
     el.resultadosVazio.classList.add('hidden');
@@ -2247,12 +2288,14 @@
     el.resultadosLista.innerHTML = '';
 
     opcoes.forEach((op, rank) => {
-      const row = document.createElement('label');
+      const row = document.createElement('div');
       row.className =
-        'flex cursor-pointer flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-400 hover:shadow-md sm:flex-row sm:items-center sm:justify-between';
+        'opcao-chapa-row flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-400 hover:shadow-md sm:flex-row sm:items-center sm:justify-between';
+      const unitStr = Number(op.precoUnitario).toFixed(2);
+      const radioId = `chapa-radio-${op.indiceChapa}`;
       row.innerHTML = `
-        <div class="flex items-start gap-3">
-          <input type="radio" name="chapa-escolhida" value="${op.indiceChapa}" class="mt-1 h-4 w-4 text-amber-600 focus:ring-amber-500" ${rank === 0 ? 'checked' : ''} />
+        <label class="flex min-w-0 cursor-pointer items-start gap-3" for="${radioId}">
+          <input type="radio" id="${radioId}" name="chapa-escolhida" value="${op.indiceChapa}" class="mt-1 h-4 w-4 shrink-0 text-amber-600 focus:ring-amber-500" ${rank === 0 ? 'checked' : ''} />
           <div class="min-w-0">
             <p class="font-semibold text-slate-800">#${rank + 1} — ${escapeHtml(op.dimensoesLabel)}</p>
             <p class="mt-1 text-sm text-slate-600">
@@ -2263,15 +2306,24 @@
               Molde L: ${formatarNumero(op.moldeL, 0)} mm · Molde C: ${formatarNumero(op.moldeC, 0)} mm · Área do molde: ${formatarNumero(op.areaMoldeM2, 6)} m²
             </p>
           </div>
-        </div>
-        <div class="flex flex-shrink-0 flex-wrap gap-4 text-sm sm:text-right">
-          <div>
-            <span class="text-slate-500">Unitário</span>
-            <p class="text-lg font-bold text-amber-700">${formatarMoeda(op.precoUnitario)}</p>
+        </label>
+        <div class="opcao-chapa-precos flex flex-shrink-0 flex-wrap items-end gap-4 text-sm sm:text-right">
+          <div class="min-w-[8.5rem]">
+            <span class="block text-slate-500">Unitário (R$)</span>
+            <input
+              type="number"
+              id="preco-unit-op-${op.indiceChapa}"
+              name="preco-unit-op"
+              min="0"
+              step="0.01"
+              value="${unitStr}"
+              data-indice-chapa="${op.indiceChapa}"
+              class="opcao-preco-unit-input mt-1 w-full max-w-[10rem] rounded-md border border-amber-300/90 bg-amber-50/70 px-2 py-1.5 text-right text-base font-semibold tabular-nums text-amber-950 shadow-inner outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30"
+            />
           </div>
           <div>
             <span class="text-slate-500">Total (${op.quantidade} un.)</span>
-            <p class="text-lg font-bold text-slate-800">${formatarMoeda(op.precoTotal)}</p>
+            <p class="opcao-preco-total mt-1 text-lg font-bold tabular-nums text-slate-800">${formatarMoeda(op.precoTotal)}</p>
           </div>
         </div>
       `;
@@ -2344,12 +2396,22 @@
     const op = obterOpcaoSelecionada();
     if (!op) return;
 
+    const inpUnit = el.resultadosLista.querySelector(
+      `input.opcao-preco-unit-input[data-indice-chapa="${op.indiceChapa}"]`
+    );
+    if (inpUnit) {
+      sincronizarPrecoUnitarioLinhaResultado(inpUnit, { normalizarInput: true });
+    }
+
     sincronizarConfiguracaoDosInputs();
     const d = lerFormulario();
     if (validar(d)) return;
 
     const dimensoesLabel = `${Math.round(d.comp)} × ${Math.round(d.larg)} × ${Math.round(d.alt)}`;
     const chapaEscolhida = `${Math.round(op.larguraChapa)}x${Math.round(op.comprimentoChapa)}`;
+
+    const precoUnitFinal = op.precoUnitario;
+    const precoTotalFinal = precoUnitFinal * d.quantidade;
 
     const item = {
       id: novoId(),
@@ -2362,8 +2424,8 @@
       quantidade: d.quantidade,
       chapaLabel: op.dimensoesLabel,
       indiceChapa: op.indiceChapa,
-      precoUnitario: op.precoUnitario,
-      precoTotal: op.precoTotal,
+      precoUnitario: precoUnitFinal,
+      precoTotal: precoTotalFinal,
       moldeL: op.moldeL,
       moldeC: op.moldeC,
       chapaEscolhida,
@@ -2399,6 +2461,18 @@
 
   el.btnAdicionar.addEventListener('click', () => {
     adicionarSelecionadoAoOrcamento();
+  });
+
+  el.resultadosLista.addEventListener('input', (e) => {
+    if (!e.target.matches('input.opcao-preco-unit-input')) return;
+    sincronizarPrecoUnitarioLinhaResultado(e.target);
+    atualizarResumoSePrecoDaLinhaAtiva(e.target);
+  });
+
+  el.resultadosLista.addEventListener('change', (e) => {
+    if (!e.target.matches('input.opcao-preco-unit-input')) return;
+    sincronizarPrecoUnitarioLinhaResultado(e.target, { normalizarInput: true });
+    atualizarResumoSePrecoDaLinhaAtiva(e.target);
   });
 
   if (el.painelChapas) {
