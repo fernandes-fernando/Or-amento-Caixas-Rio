@@ -2290,12 +2290,13 @@
     opcoes.forEach((op, rank) => {
       const row = document.createElement('div');
       row.className =
-        'opcao-chapa-row flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-400 hover:shadow-md sm:flex-row sm:items-center sm:justify-between';
+        'opcao-chapa-row flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-amber-400 hover:shadow-md sm:flex-row sm:items-start sm:justify-between';
       const unitStr = Number(op.precoUnitario).toFixed(2);
       const radioId = `chapa-radio-${op.indiceChapa}`;
+      const ariaOp = `#${rank + 1} — ${op.dimensoesLabel}, ${op.maximoCaixas} caixa(s) por chapa`;
       row.innerHTML = `
-        <label class="flex min-w-0 cursor-pointer items-start gap-3" for="${radioId}">
-          <input type="radio" id="${radioId}" name="chapa-escolhida" value="${op.indiceChapa}" class="mt-1 h-4 w-4 shrink-0 text-amber-600 focus:ring-amber-500" ${rank === 0 ? 'checked' : ''} />
+        <div class="opcao-chapa-select flex min-w-0 flex-1 cursor-pointer items-start gap-3 sm:min-w-0">
+          <input type="radio" id="${radioId}" name="chapa-escolhida" value="${op.indiceChapa}" aria-label=${JSON.stringify(ariaOp)} class="mt-1 h-4 w-4 shrink-0 text-amber-600 focus:ring-amber-500" ${rank === 0 ? 'checked' : ''} />
           <div class="min-w-0">
             <p class="font-semibold text-slate-800">#${rank + 1} — ${escapeHtml(op.dimensoesLabel)}</p>
             <p class="mt-1 text-sm text-slate-600">
@@ -2306,8 +2307,8 @@
               Molde L: ${formatarNumero(op.moldeL, 0)} mm · Molde C: ${formatarNumero(op.moldeC, 0)} mm · Área do molde: ${formatarNumero(op.areaMoldeM2, 6)} m²
             </p>
           </div>
-        </label>
-        <div class="opcao-chapa-precos flex flex-shrink-0 flex-wrap items-end gap-4 text-sm sm:text-right">
+        </div>
+        <div class="opcao-chapa-precos relative z-10 flex flex-shrink-0 flex-wrap items-end gap-4 text-sm touch-manipulation sm:text-right">
           <div class="min-w-[8.5rem]">
             <span class="block text-slate-500">Unitário (R$)</span>
             <input
@@ -2316,9 +2317,11 @@
               name="preco-unit-op"
               min="0"
               step="0.01"
+              inputmode="decimal"
+              autocomplete="off"
               value="${unitStr}"
               data-indice-chapa="${op.indiceChapa}"
-              class="opcao-preco-unit-input mt-1 w-full max-w-[10rem] rounded-md border border-amber-300/90 bg-amber-50/70 px-2 py-1.5 text-right text-base font-semibold tabular-nums text-amber-950 shadow-inner outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30"
+              class="opcao-preco-unit-input relative z-10 mt-1 min-h-[44px] w-full max-w-[10rem] rounded-md border border-amber-300/90 bg-amber-50/70 px-2 py-1.5 text-right text-base font-semibold tabular-nums text-amber-950 shadow-inner outline-none ring-amber-500/0 transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30"
             />
           </div>
           <div>
@@ -2328,6 +2331,16 @@
         </div>
       `;
       el.resultadosLista.appendChild(row);
+
+      const selectBlock = row.querySelector('.opcao-chapa-select');
+      const radio = row.querySelector('input[name="chapa-escolhida"]');
+      if (selectBlock && radio) {
+        selectBlock.addEventListener('click', (e) => {
+          if (e.target instanceof HTMLInputElement && e.target.name === 'chapa-escolhida') return;
+          radio.checked = true;
+          radio.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+      }
     });
 
     const radios = el.resultadosLista.querySelectorAll('input[name="chapa-escolhida"]');
